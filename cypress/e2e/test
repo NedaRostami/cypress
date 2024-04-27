@@ -1,0 +1,82 @@
+// counter for passed tests
+let pass = 0
+
+let totalToPass = 6
+
+let collection = pm.response.json().collection
+
+pm.test("If you have any failures, review the failed test results or ask for support in the community forum. Remember to save your changes if you update the collection. When all of your tests pass, you are done with today's challenge.", () => {
+    pm.expect(true);
+    pass += 1
+});
+
+pm.test("Status code is 200", () => {
+    pm.response.to.have.status(200);
+    pass += 1
+});
+
+pm.test("Correct collection returned", () => {
+    pm.expect(collection.info.name).equals("Day 10: Test coverage")
+    pass += 1
+})
+
+let folder = collection.item.find(fol => {return fol.name === "Test coverage"})
+
+pm.test("Requests added correctly", () => {
+    pm.expect(folder.item.length, 'check number of requests').equals(2)
+
+    let fakerRequest = folder.item.find(req => { return req.name === "httpbin with faker"})
+    pm.expect(fakerRequest.name, 'check name').equals("httpbin with faker")
+    pm.expect(fakerRequest.request.method, 'check method').equals("POST")
+    pm.expect(fakerRequest.request.url.query.length, 'check params').equals(1)
+
+    let fileRequest = folder.item.find(req => { return req.name === "httpbin with file"})
+    pm.expect(fileRequest.name, 'check name').equals("httpbin with file")
+    pm.expect(fileRequest.request.method, 'check method').equals("POST")
+    pm.expect(fileRequest.request.url.query.length, 'check params').equals(1)
+
+    pass += 1
+})
+
+
+pm.test("Faker data added", () => {
+    let fakerRequest = folder.item.find(req => { return req.name === "httpbin with faker"})
+    let event = fakerRequest.event.find(e => {return e.listen === "test"})
+
+    pm.expect(JSON.stringify(fakerRequest.request), 'check body').to.contain("{{$randomAnimalsImage}}")
+
+    pm.expect(event.script.exec.toString(), 'check log').contains("console.log")
+    pm.expect(event.script.exec.toString(), 'check script').contains("pm.variables.replaceIn")
+    pm.expect(event.script.exec.toString(), 'check faker').contains("{{$randomColor}}")
+
+    pass += 1
+})
+
+pm.test("File data added", () => {
+    let fileRequest = folder.item.find(req => { return req.name === "httpbin with file"})
+    let event = fileRequest.event.find(e => {return e.listen === "test"})
+
+    pm.expect(event.script.exec.toString(), 'check test').contains("pm.test")
+    pm.expect(event.script.exec.toString(), 'check test').contains("Response has data value")
+    pm.expect(event.script.exec.toString(), 'check test').contains("pm.response.json()")
+    pm.expect(event.script.exec.toString(), 'check test').contains("testData")
+    pm.expect(event.script.exec.toString(), 'check test').contains("pm.iterationData.get")
+    pm. expect(event.script.exec.toString(), 'check test').contains("pm.iterationData.get")
+
+    pass += 1
+})
+
+// visualization for test results
+let template
+if (pass == totalToPass) {
+    template = `🍪 passing!
+        <br />
+        <img src="https://media1.giphy.com/media/H0UrNLbikeCYg/giphy.gif?cid=ecf05e47lg5h7qayt9xr5skf06lh31kz2ozhysrypm4htinx&rid=giphy.gif&ct=g" />
+    `
+} else {
+    template = `🙅 please try again
+        <br />
+        <img src="https://media3.giphy.com/media/zu8DrkFiuz8JO/giphy.gif?cid=ecf05e47vtwsiob8kittbfq9lkkey2d8sxpafphia58eoanq&rid=giphy.gif&ct=g" />
+    `
+}
+pm.visualizer.set(template)
